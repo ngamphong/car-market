@@ -39,19 +39,19 @@ className="w-full h-48 object-cover group-hover:scale-105 transition"
 {/* CONTENT */}
 <div className="p-4">
 
-<h2 className="font-bold text-lg line-clamp-1">
+<h2 className="font-bold text-lg line-clamp-1 text-gray-900">
 {car.brand} {car.model}
 </h2>
 
-<p className="text-xs text-gray-500">
+<p className="text-xs text-gray-900">
 {car.categories?.name}
 </p>
 
-<p className="text-gray-500 text-sm">
+<p className="text-gray-900 text-sm">
 ปี {car.year}
 </p>
 
-<p className="text-gray-400 text-xs mt-1">
+<p className="text-gray-900 text-xs mt-1">
 เลขไมล์ {Number(car.mileage).toLocaleString()} กม.
 </p>
 

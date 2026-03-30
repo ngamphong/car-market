@@ -465,7 +465,7 @@ return(
     {/* Desktop links */}
     <div className="kkc-nav-links">
       <a href="/admin">ขายรถ</a>
-      <a href="#">ติดต่อเรา</a>
+      <a href="https://www.facebook.com/NIGPremiumCars/?locale=th_TH">ติดต่อเรา</a>
     </div>
 
     {/* Hamburger */}
@@ -480,9 +480,8 @@ return(
 
   {menuOpen && (
     <div className="kkc-mobile-menu">
-      <p>ซื้อรถ</p>
-      <p>ขายรถ</p>
-      <p>ติดต่อเรา</p>
+      <a href="/admin">ขายรถ</a>
+      <a href="https://www.facebook.com/NIGPremiumCars/?locale=th_TH">ติดต่อเรา</a>
     </div>
   )}
 </nav>
