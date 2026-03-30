@@ -569,7 +569,7 @@ return(
 
     <div>
       <h3>ติดต่อ</h3>
-      <p>support@car.com</p>
+      <p>nigpmc@gmail.com</p>
     </div>
 
     <div>
