@@ -20,6 +20,23 @@ const [price,setPrice]=useState("")
 const [category,setCategory]=useState("")
 const [menuOpen,setMenuOpen]=useState(false)
 
+// ✅ THEME
+const [theme,setTheme]=useState("dark")
+
+const toggleTheme = ()=>{
+const newTheme = theme === "dark" ? "light" : "dark"
+setTheme(newTheme)
+document.documentElement.classList.toggle("dark", newTheme==="dark")
+localStorage.setItem("theme",newTheme)
+}
+
+// โหลด theme
+useEffect(()=>{
+const saved = localStorage.getItem("theme") || "dark"
+setTheme(saved)
+document.documentElement.classList.toggle("dark", saved==="dark")
+},[])
+
 
 // ---------------- โหลดรถ ----------------
 async function loadCars(){
@@ -54,6 +71,8 @@ const {data}=await query
 setCars(data || [])
 
 }
+
+// ---------------- Dark/Light Mode ----------------
 
 
 // ---------------- โหลด Banner ----------------
@@ -92,12 +111,7 @@ loadCategories()
 
 return(
 
-<div style={{
-  backgroundColor: "#0a0a0a",
-  minHeight: "100vh",
-  fontFamily: "'Barlow', 'Sarabun', sans-serif",
-  color: "#f0f0f0",
-}}>
+<div className="bg-gray-100 text-black dark:bg-black dark:text-white min-h-screen">
 
 <style>{`
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,900;1,700&display=swap');
@@ -468,6 +482,14 @@ return(
       <a href="https://www.facebook.com/NIGPremiumCars/?locale=th_TH">ติดต่อเรา</a>
     </div>
 
+    {/* ✅ ปุ่มสลับ Theme */}
+    <button
+      onClick={toggleTheme}
+      className="border px-3 py-1 rounded bg-gray-200 dark:bg-gray-800 dark:text-white"
+    >
+      {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+    </button>
+
     {/* Hamburger */}
     <button
       className="kkc-hamburger"
@@ -495,41 +517,43 @@ return(
 
 {/* ── SEARCH BOX ── */}
 <div className="kkc-search-wrap">
-  <div className="kkc-search-box">
+  <div className="bg-white dark:bg-gray-900 border dark:border-gray-700 p-4 rounded-lg shadow">
+    <div className="kkc-search-box">
 
-    <input
-      value={search}
-      onChange={(e)=>setSearch(e.target.value)}
-      className="kkc-input"
-      placeholder="🔍  ค้นหายี่ห้อ / รุ่น"
-    />
+      <input
+        value={search}
+        onChange={(e)=>setSearch(e.target.value)}
+        className="kkc-input"
+        placeholder="🔍  ค้นหายี่ห้อ / รุ่น"
+      />
 
-    <select
-      value={price}
-      onChange={(e)=>setPrice(e.target.value)}
-      className="kkc-select"
-    >
-      <option value="">ราคาทั้งหมด</option>
-      <option value="300">ต่ำกว่า 300,000</option>
-      <option value="500">300,000 – 500,000</option>
-      <option value="500plus">500,000+</option>
-    </select>
+      <select
+        value={price}
+        onChange={(e)=>setPrice(e.target.value)}
+        className="kkc-select"
+      >
+        <option value="">ราคาทั้งหมด</option>
+        <option value="300">ต่ำกว่า 300,000</option>
+        <option value="500">300,000 – 500,000</option>
+        <option value="500plus">500,000+</option>
+      </select>
 
-    <select
-      value={category}
-      onChange={(e)=>setCategory(e.target.value)}
-      className="kkc-select"
-    >
-      <option value="">ทุกหมวด</option>
-      {categories.map((c)=>(
-        <option key={c.id} value={c.id}>{c.name}</option>
-      ))}
-    </select>
+      <select
+        value={category}
+        onChange={(e)=>setCategory(e.target.value)}
+        className="kkc-select"
+      >
+        <option value="">ทุกหมวด</option>
+        {categories.map((c)=>(
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
 
-    <button onClick={loadCars} className="kkc-btn-search">
-      ค้นหา
-    </button>
+      <button onClick={loadCars} className="kkc-btn-search">
+        ค้นหา
+      </button>
 
+    </div>
   </div>
 </div>
 
