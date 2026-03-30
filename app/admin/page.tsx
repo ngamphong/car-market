@@ -498,7 +498,7 @@ return(
   <nav className="admin-nav">
     <div className="admin-nav-inner">
       <div>
-        <div className="admin-brand">KKC <span>CAR</span> HUB</div>
+        <a href="/"><div className="admin-brand">KKC <span>CAR</span> HUB</div></a>
         <span className="admin-brand-sub">Admin Dashboard</span>
       </div>
       <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
