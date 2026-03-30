@@ -15,7 +15,7 @@ return(
 <Link href="/" className="font-bold text-xl">
 🚗 SPUKKCAR
 </Link>
-
+ 
 <Link href="/admin">
 ลงขายรถ
 </Link>
