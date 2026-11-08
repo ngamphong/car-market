@@ -47,6 +47,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+*, *::before, *::after { box-sizing: border-box; }
+html, body { min-width: 320px; max-width: 100%; overflow-x: clip; }
+img, video, iframe { max-width: 100%; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { touch-action: manipulation; }
+
+.share-control { display: grid; gap: 6px; }
+.btn-share { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 11px; background: var(--surface2); color: var(--text); cursor: pointer; }
+.btn-share:hover { border-color: #e8191a; }
+.share-message { color: var(--muted); font-size: .82rem; }
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;

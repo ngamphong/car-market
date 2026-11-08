@@ -21,42 +21,22 @@ const [categories,setCategories]=useState<Category[]>([])
 const [search,setSearch]=useState("")
 const [price,setPrice]=useState("")
 const [category,setCategory]=useState("")
+const [yearMin,setYearMin]=useState("")
+const [yearMax,setYearMax]=useState("")
+const [mileageMax,setMileageMax]=useState("")
+const [sortOrder,setSortOrder]=useState("newest")
 const [menuOpen,setMenuOpen]=useState(false)
 
 
 // ---------------- โหลดรถ ----------------
-async function loadCars(){
-
-let query=supabase
-.from("cars")
-.select("*, categories(name)")
-.order("created_at",{ascending:false})
-
-if(search){
-query=query.ilike("model",`%${search}%`)
-}
-
-if(price==="300"){
-query=query.lte("price",300000)
-}
-
-if(price==="500"){
-query=query.gte("price",300000).lte("price",500000)
-}
-
-if(price==="500plus"){
-query=query.gte("price",500000)
-}
-
-if(category){
-query = query.eq("category_id", category)
-}
-
-const {data}=await query
-
-setCars(data || [])
-
-}
+const filteredCars = cars.filter((car) => {
+  const term = search.trim().toLocaleLowerCase("th")
+  const matchesTerm = !term || `${car.brand} ${car.model} ${car.year}`.toLocaleLowerCase("th").includes(term)
+  const matchesPrice = !price || (price === "300" ? Number(car.price) < 300000 : price === "500" ? Number(car.price) >= 300000 && Number(car.price) <= 500000 : Number(car.price) > 500000)
+  const matchesYear = (!yearMin || Number(car.year) >= Number(yearMin)) && (!yearMax || Number(car.year) <= Number(yearMax))
+  const matchesMileage = !mileageMax || Number(car.mileage) <= Number(mileageMax)
+  return matchesTerm && matchesPrice && matchesYear && matchesMileage && (!category || String(car.category_id) === category)
+}).sort((a,b) => sortOrder === "price-low" ? Number(a.price)-Number(b.price) : sortOrder === "price-high" ? Number(b.price)-Number(a.price) : sortOrder === "year-new" ? Number(b.year)-Number(a.year) : String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
 
 
 // ---------------- โหลด Banner ----------------
@@ -207,7 +187,7 @@ return(
     box-shadow: 0 4px 30px rgba(0,0,0,0.5);
   }
 
-  .kkc-input {
+    .kkc-input {
     flex: 1;
     min-width: 160px;
     background: #1e1e1e;
@@ -437,6 +417,20 @@ return(
     .kkc-hamburger { display: block; }
     .kkc-section-title { font-size: 1.6rem; }
   }
+  @media(max-width:520px){
+    .kkc-nav-inner{height:58px;padding:0 .75rem;gap:8px}
+    .kkc-logo-kkc{font-size:21px;letter-spacing:1px}
+    .kkc-logo-sub{font-size:15px}
+    .kkc-logo-thai{font-size:9px}
+    .kkc-search-wrap{padding:1rem .75rem}
+    .kkc-search-box{padding:1rem;gap:.6rem}
+    .kkc-input,.kkc-select,.kkc-btn-search{width:100%;min-width:0;min-height:44px}
+    .kkc-section{padding:0 .75rem 2rem}
+    .kkc-grid{grid-template-columns:1fr}
+    .kkc-sell h2{font-size:2rem}
+    .kkc-sell::before{font-size:110px}
+  }
+  @media(max-width:360px){.theme-toggle{padding:7px;font-size:0}.theme-toggle::first-letter{font-size:14px}}
 `}</style>
 
 <style>{`
@@ -509,6 +503,7 @@ return(
       onChange={(e)=>setSearch(e.target.value)}
       className="kkc-input"
       placeholder="🔍  ค้นหายี่ห้อ / รุ่น"
+      aria-label="ค้นหายี่ห้อ รุ่น หรือปีรถ"
     />
 
     <select
@@ -533,9 +528,12 @@ return(
       ))}
     </select>
 
-    <button onClick={loadCars} className="kkc-btn-search">
-      ค้นหา
-    </button>
+    <input className="kkc-input" type="number" inputMode="numeric" placeholder="ปีตั้งแต่" aria-label="ปีตั้งแต่" value={yearMin} onChange={(e)=>setYearMin(e.target.value)} />
+    <input className="kkc-input" type="number" inputMode="numeric" placeholder="ปีถึง" aria-label="ปีถึง" value={yearMax} onChange={(e)=>setYearMax(e.target.value)} />
+    <input className="kkc-input" type="number" inputMode="numeric" placeholder="เลขไมล์ไม่เกิน" aria-label="เลขไมล์ไม่เกิน" value={mileageMax} onChange={(e)=>setMileageMax(e.target.value)} />
+    <select className="kkc-select" aria-label="เรียงลำดับรถ" value={sortOrder} onChange={(e)=>setSortOrder(e.target.value)}>
+      <option value="newest">รถมาใหม่</option><option value="price-low">ราคาต่ำไปสูง</option><option value="price-high">ราคาสูงไปต่ำ</option><option value="year-new">ปีใหม่ไปเก่า</option>
+    </select>
 
   </div>
 </div>
@@ -545,7 +543,7 @@ return(
 <div className="kkc-section">
   <h2 className="kkc-section-title">🚗 รถลงใหม่ล่าสุด</h2>
   <div className="kkc-grid">
-    {cars.slice(0,6).map((car)=>(
+    {filteredCars.slice(0,6).map((car)=>(
       <CarCard key={car.id} car={car}/>
     ))}
   </div>
@@ -556,9 +554,10 @@ return(
 <div className="kkc-section">
   <h2 className="kkc-section-title">รถมือสองทั้งหมด</h2>
   <div className="kkc-grid">
-    {cars.map((car)=>(
+    {filteredCars.map((car)=>(
       <CarCard key={car.id} car={car}/>
     ))}
+    {filteredCars.length===0 && <p role="status">ไม่พบรถที่ตรงกับเงื่อนไข ลองปรับตัวกรอง</p>}
   </div>
 </div>
 

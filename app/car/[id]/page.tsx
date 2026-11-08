@@ -4,18 +4,30 @@ import ImageGallery from "../../components/ImageGallery"
 import CarCard from "../../components/CarCard"
 import CarFinance from "../../components/CarFinance"
 import ThemeToggle from "../../components/ThemeToggle"
+import ShareButton from "../../components/ShareButton"
+import CustomerInquiryForm from "../../components/CustomerInquiryForm"
 import type { Car } from "../../types"
+
+async function getCar(id: string) {
+  const { data } = await supabase.from("cars").select("*").eq("id", id).single()
+  return data as Car | null
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const car = await getCar(id)
+  if (!car) return { title: "ไม่พบรถ | KKC CAR HUB", robots: { index: false, follow: false } }
+  const title = `${car.brand} ${car.model} ปี ${car.year} ราคา ${Number(car.price).toLocaleString()} บาท | KKC CAR HUB`
+  const description = `${car.brand} ${car.model} ปี ${car.year} เลขไมล์ ${Number(car.mileage).toLocaleString()} กม. ราคา ${Number(car.price).toLocaleString()} บาท${car.description ? ` — ${car.description.slice(0, 120)}` : ""}`
+  const url = `/car/${id}`
+  return { title, description, alternates: { canonical: url }, openGraph: { title, description, url, type: "website", images: car.image_url.split(",").map((image) => image.trim()).filter(Boolean).slice(0, 1) }, twitter: { card: "summary_large_image", title, description, images: car.image_url.split(",").map((image) => image.trim()).filter(Boolean).slice(0, 1) } }
+}
 
 export default async function CarDetail({ params }: { params: Promise<{ id: string }> }) {
 
 const { id } = await params
 
-const { data: carData } = await supabase
-.from("cars")
-.select("*")
-.eq("id", id)
-.single()
-const car = carData as Car | null
+const car = await getCar(id)
 
 if (!car) {
 return (
@@ -31,7 +43,7 @@ return (
 )
 }
 
-const images = car.image_url.split(",")
+const images = car.image_url.split(",").map((image) => image.trim()).filter(Boolean)
 
 const { data: recommendData } = await supabase
 .from("cars")
@@ -388,6 +400,12 @@ return(
     .car-title{font-size:1.8rem;}
     .price-amount{font-size:2rem;}
   }
+  @media(max-width:360px){.breadcrumb-inner{padding:0 12px;gap:5px;font-size:.62rem}.main-inner{padding:18px 12px 0}.recommend-section{padding:0 12px}.card-body{padding:16px}}
+  .inquiry-form{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:grid;gap:8px}
+  .inquiry-form h3{font-size:1rem;margin-bottom:4px}.inquiry-form label{font-size:.82rem;color:var(--muted)}
+  .inquiry-form input,.inquiry-form textarea{width:100%;min-width:0;padding:11px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font:inherit}
+  .btn-inquiry{width:100%;border:0;border-radius:6px;padding:13px;background:var(--red);color:white;font-weight:700;cursor:pointer}
+  .btn-inquiry:disabled{opacity:.65}.inquiry-feedback{font-size:.84rem;color:var(--green)}.inquiry-feedback.error{color:#ff7777}
 `}</style>
 
 <div className="page">
@@ -421,7 +439,7 @@ return(
             ขายแล้ว
           </div>
         ) : (
-          <div className="badge-avail">
+      <div className="badge-avail">
             <div className="badge-dot"/>
             พร้อมขาย ({car.stock} คัน)
           </div>
@@ -513,6 +531,8 @@ return(
           )}
 
           <button className="btn-save">❤️ บันทึกรถ</button>
+          <div style={{marginTop:10}}><ShareButton title={`${car.brand} ${car.model} ปี ${car.year}`} /></div>
+          <CustomerInquiryForm carId={car.id} carLabel={`${car.brand} ${car.model} ปี ${car.year}`} />
 
         </div>
       </div>

@@ -5,7 +5,7 @@ import { supabase } from "../../lib/supabase"
 import Link from "next/link"
 import Image from "next/image"
 import type { User } from "@supabase/supabase-js"
-import type { Car } from "../types"
+import type { Car, CarStatus } from "../types"
 
 export default function AdminPage() {
 
@@ -17,6 +17,7 @@ const [search,setSearch] = useState("")
 const [brandFilter,setBrandFilter] = useState("")
 const [yearFilter,setYearFilter] = useState("")
 const [priceFilter,setPriceFilter] = useState("")
+const [statusFilter,setStatusFilter] = useState("")
 
 const [page,setPage] = useState(1)
 
@@ -93,21 +94,26 @@ fetchCars()
 
 // ================= UPDATE STATUS =================
 
-const updateStatus = async(id:number,status:string)=>{
-
-await supabase
-.from("cars")
-.update({status})
-.eq("id",id)
-
+const updateStatus = async(car:Car,status:CarStatus)=>{
+const patch = status === "sold" ? {status,stock:0} : {status,stock:Math.max(1,Number(car.stock)||0)}
+const {error}=await supabase.from("cars").update(patch).eq("id",car.id)
+if(error){alert("เปลี่ยนสถานะไม่สำเร็จ");return}
 fetchCars()
+}
 
+const adjustStock = async(car:Car,delta:number)=>{
+const stock=Math.max(0,(Number(car.stock)||0)+delta)
+const status:CarStatus=stock===0?"sold":car.status==="sold"?"available":car.status as CarStatus
+const {error}=await supabase.from("cars").update({stock,status}).eq("id",car.id)
+if(error){alert("ปรับสต็อกไม่สำเร็จ");return}
+fetchCars()
 }
 
 
 // ================= SELL (ตัดสต็อก) =================
 
 const sellCar = async(car:Car)=>{
+if(!confirm(`ยืนยันขาย ${car.brand} ${car.model} 1 คันหรือไม่?`)) return
 
 if(car.stock <= 1){
 
@@ -148,6 +154,7 @@ return(
 && (yearFilter ? String(car.year) === yearFilter : true)
 
 && (priceFilter ? Number(car.price) <= Number(priceFilter) : true)
+&& (statusFilter ? (statusFilter === "available" ? car.status === "available" && Number(car.stock)>0 : car.status === statusFilter) : true)
 
 )
 
@@ -529,6 +536,8 @@ return(
         <Link href="/admin/banner" className="nav-pill nav-pill-purple">
           <span>⊞</span><span>จัดการ Banner</span>
         </Link>
+        <Link href="/admin/categories" className="nav-pill nav-pill-dark"><span>หมวดหมู่</span></Link>
+        <Link href="/admin/inquiries" className="nav-pill nav-pill-dark"><span>คำถามลูกค้า</span></Link>
         <button onClick={logout} className="nav-pill nav-pill-dark">
           <span>→</span><span>Logout</span>
         </button>
@@ -568,6 +577,9 @@ return(
         onChange={(e)=>setSearch(e.target.value)}
         className="filter-input"
       />
+      <select className="filter-input" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)} aria-label="กรองสถานะรถ">
+        <option value="">ทุกสถานะ</option><option value="available">พร้อมขาย</option><option value="reserved">จองแล้ว</option><option value="sold">ขายแล้ว</option>
+      </select>
       <input
         placeholder="ยี่ห้อ"
         value={brandFilter}
@@ -620,7 +632,11 @@ return(
                   {Number(car.price).toLocaleString()}
                 </td>
                 <td className="center" style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:'1.1rem',letterSpacing:'0.06em'}}>
-                  {car.stock ?? 0}
+                  <div style={{display:'inline-flex',alignItems:'center',gap:8}}>
+                    <button aria-label={`ลดสต็อก ${car.brand} ${car.model}`} onClick={()=>adjustStock(car,-1)} disabled={Number(car.stock)<=0}>−</button>
+                    <strong>{car.stock ?? 0}</strong>
+                    <button aria-label={`เพิ่มสต็อก ${car.brand} ${car.model}`} onClick={()=>adjustStock(car,1)}>＋</button>
+                  </div>
                 </td>
                 <td className="center">
                   <span className={`status-pill ${
@@ -628,14 +644,15 @@ return(
                     : car.status === "sold" ? "status-sold"
                     : "status-other"
                   }`}>
-                    {car.status}
+                    {car.status === "available" ? "พร้อมขาย" : car.status === "reserved" ? "จองแล้ว" : "ขายแล้ว"}
                   </span>
                 </td>
                 <td className="center">
                   <div className="action-btns">
                     <a href={`/admin/edit/${car.id}`} className="act-btn act-edit">Edit</a>
                     <button onClick={()=>sellCar(car)} className="act-btn act-sell">ขาย</button>
-                    <button onClick={()=>updateStatus(car.id,"sold")} className="act-btn act-sold">Sold</button>
+                    <button onClick={()=>updateStatus(car,car.status === "reserved" ? "available" : "reserved")} className="act-btn act-sold">{car.status === "reserved" ? "ยกเลิกจอง" : "จอง"}</button>
+                    {car.status !== "sold" && <button onClick={()=>updateStatus(car,"sold")} className="act-btn act-sold">ขายหมด</button>}
                     <button onClick={()=>deleteCar(car.id)} className="act-btn act-del">Delete</button>
                   </div>
                 </td>
