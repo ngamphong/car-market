@@ -17,6 +17,21 @@ export type CustomerInquiry = {
   created_at: string
 }
 
+export type InventoryMovement = {
+  id: number
+  car_id: number
+  car_label: string
+  event_type: "stock_received" | "stock_adjustment" | "sale" | "status_change" | "car_deleted"
+  quantity_change: number
+  stock_before: number
+  stock_after: number
+  sale_price: number | null
+  note: string | null
+  actor_id: string | null
+  actor_email: string | null
+  created_at: string
+}
+
 export type Banner = {
   id: number
   image_url: string

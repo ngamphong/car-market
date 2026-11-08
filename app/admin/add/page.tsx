@@ -36,8 +36,15 @@ if(!e.target.files) return
 
 const selected = Array.from(e.target.files) as File[]
 
+if(selected.length>10 || selected.some((file)=>!file.type.startsWith("image/") || file.size>10*1024*1024)){
+alert("เลือกได้ไม่เกิน 10 รูป และแต่ละรูปต้องเป็นไฟล์ภาพขนาดไม่เกิน 10 MB")
+e.target.value=""
+return
+}
+
 setFiles(selected)
 
+preview.forEach((url)=>URL.revokeObjectURL(url))
 const previews = selected.map((file)=>
 URL.createObjectURL(file)
 )
@@ -51,9 +58,14 @@ setPreview(previews)
 const handleSubmit = async(e: React.FormEvent<HTMLFormElement>)=>{
 
 e.preventDefault()
-setLoading(true)
-
 const form = new FormData(e.currentTarget)
+const year=Number(form.get("year")), price=Number(form.get("price")), mileage=Number(form.get("mileage")), stock=Number(form.get("stock"))
+if(!String(form.get("brand")??"").trim() || !String(form.get("model")??"").trim() || !Number.isInteger(year) || year<1900 || year>new Date().getFullYear()+1 || !Number.isFinite(price) || price<=0 || !Number.isFinite(mileage) || mileage<0 || !Number.isInteger(stock) || stock<1){
+alert("ตรวจข้อมูลยี่ห้อ รุ่น ปี ราคา เลขไมล์ และสต็อกให้ถูกต้องก่อนบันทึก")
+return
+}
+if(files.length===0){alert("กรุณาเลือกรูปรถอย่างน้อย 1 รูป");return}
+setLoading(true)
 
 const imageUrls:string[]=[]
 
@@ -61,7 +73,8 @@ const imageUrls:string[]=[]
 // ---------- upload รูป ----------
 for(const file of files){
 
-const fileName = Date.now()+"-"+file.name.replace(/\s/g,"")
+const extension=file.name.split(".").pop()?.toLowerCase()||"jpg"
+const fileName = `${crypto.randomUUID()}.${extension}`
 
 const {error} = await supabase.storage
 .from("car-images")
@@ -94,7 +107,7 @@ year:form.get("year"),
 price:form.get("price"),
 mileage:form.get("mileage"),
 description:form.get("description"),
-stock:Number(form.get("stock")) || 1,
+stock,
 status:"available",
 image_url:imageUrls.join(","),
 
@@ -427,32 +440,32 @@ return(
 
           <div className="field">
             <label className="field-label">ยี่ห้อ</label>
-            <input name="brand" placeholder="เช่น Toyota, Honda…" className="field-input"/>
+            <input name="brand" required maxLength={80} placeholder="เช่น Toyota, Honda…" className="field-input"/>
           </div>
 
           <div className="field">
             <label className="field-label">รุ่น</label>
-            <input name="model" placeholder="เช่น Camry, Civic…" className="field-input"/>
+            <input name="model" required maxLength={100} placeholder="เช่น Camry, Civic…" className="field-input"/>
           </div>
 
           <div className="field">
             <label className="field-label">ปี</label>
-            <input name="year" placeholder="เช่น 2022" className="field-input"/>
+            <input name="year" type="number" min="1900" max={new Date().getFullYear()+1} required placeholder="เช่น 2022" className="field-input"/>
           </div>
 
           <div className="field">
             <label className="field-label">ราคา (บาท)</label>
-            <input name="price" placeholder="เช่น 850000" className="field-input"/>
+            <input name="price" type="number" min="1" step="1" required placeholder="เช่น 850000" className="field-input"/>
           </div>
 
           <div className="field">
             <label className="field-label">เลขไมล์ (กม.)</label>
-            <input name="mileage" placeholder="เช่น 45000" className="field-input"/>
+            <input name="mileage" type="number" min="0" step="1" required placeholder="เช่น 45000" className="field-input"/>
           </div>
 
           <div className="field">
             <label className="field-label">จำนวนสต็อก</label>
-            <input name="stock" type="number" placeholder="เช่น 1" className="field-input"/>
+            <input name="stock" type="number" min="1" step="1" required defaultValue="1" placeholder="เช่น 1" className="field-input"/>
           </div>
 
           {/* ✅ NEW: CATEGORY DROPDOWN */}

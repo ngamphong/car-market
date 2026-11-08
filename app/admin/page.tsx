@@ -6,12 +6,16 @@ import Link from "next/link"
 import Image from "next/image"
 import ThemeToggle from "../components/ThemeToggle"
 import type { User } from "@supabase/supabase-js"
-import type { Car, CarStatus } from "../types"
+import type { Car, CarStatus, Category, InventoryMovement } from "../types"
 
 export default function AdminPage() {
 
 const [user,setUser] = useState<User | null>(null)
 const [cars,setCars] = useState<Car[]>([])
+const [categories,setCategories] = useState<Category[]>([])
+const [movements,setMovements] = useState<InventoryMovement[]>([])
+const [sales30Days,setSales30Days] = useState<{sale_price:number|null;quantity_change:number}[]>([])
+const [historyWarning,setHistoryWarning] = useState("")
 const [loading,setLoading] = useState(true)
 
 const [search,setSearch] = useState("")
@@ -19,6 +23,9 @@ const [brandFilter,setBrandFilter] = useState("")
 const [yearFilter,setYearFilter] = useState("")
 const [priceFilter,setPriceFilter] = useState("")
 const [statusFilter,setStatusFilter] = useState("")
+const [selectedIds,setSelectedIds] = useState<number[]>([])
+const [bulkCategoryId,setBulkCategoryId] = useState("")
+const [bulkStatus,setBulkStatus] = useState("")
 
 const [page,setPage] = useState(1)
 
@@ -43,6 +50,19 @@ void supabase.auth.getUser().then(({ data }) => {
 void supabase.from("cars").select("*").order("created_at",{ascending:false}).then(({ data }) => {
   if (active) setCars((data ?? []) as Car[])
 })
+void supabase.from("categories").select("*").order("name").then(({data})=>{if(active)setCategories((data??[]) as Category[])})
+void supabase.auth.getUser().then(async({data})=>{
+  if(!active || !data.user)return
+  const since=new Date(Date.now()-30*24*60*60*1000).toISOString()
+  const [historyResult,salesResult]=await Promise.all([
+    supabase.from("inventory_movements").select("*").order("created_at",{ascending:false}).limit(8),
+    supabase.from("inventory_movements").select("sale_price,quantity_change").eq("event_type","sale").gte("created_at",since),
+  ])
+  if(!active)return
+  if(historyResult.error || salesResult.error)setHistoryWarning("ยังไม่พบตารางประวัติ กรุณารัน migration 202611090002_inventory_history.sql ใน Supabase")
+  setMovements((historyResult.data??[]) as InventoryMovement[])
+  setSales30Days((salesResult.data??[]) as {sale_price:number|null;quantity_change:number}[])
+})
 return () => { active = false }
 },[])
 
@@ -51,12 +71,13 @@ e.preventDefault()
 
 const form = new FormData(e.currentTarget)
 
-await supabase.auth.signInWithPassword({
+const {error}=await supabase.auth.signInWithPassword({
 email:form.get("email") as string,
 password:form.get("password") as string
 })
-
+if(error){alert("เข้าสู่ระบบไม่สำเร็จ ตรวจสอบอีเมลและรหัสผ่าน");return}
 checkUser()
+void fetchHistory()
 }
 
 const logout = async ()=>{
@@ -76,69 +97,95 @@ const {data} = await supabase
 setCars(data || [])
 }
 
+const fetchHistory = async()=>{
+const since=new Date(Date.now()-30*24*60*60*1000).toISOString()
+const [historyResult,salesResult]=await Promise.all([
+  supabase.from("inventory_movements").select("*").order("created_at",{ascending:false}).limit(8),
+  supabase.from("inventory_movements").select("sale_price,quantity_change").eq("event_type","sale").gte("created_at",since),
+])
+if(historyResult.error || salesResult.error){setHistoryWarning("ยังไม่พบตารางประวัติ กรุณารัน migration 202611090002_inventory_history.sql ใน Supabase");return}
+setHistoryWarning("")
+setMovements((historyResult.data??[]) as InventoryMovement[])
+setSales30Days((salesResult.data??[]) as {sale_price:number|null;quantity_change:number}[])
+}
+
 
 // ================= DELETE =================
 
-const deleteCar = async(id:number)=>{
-
-if(!confirm("ลบรถคันนี้ ?")) return
-
-await supabase
-.from("cars")
-.delete()
-.eq("id",id)
-
-fetchCars()
-
+const deleteCar = async(car:Car)=>{
+if(!confirm(`ยืนยันลบ ${car.brand} ${car.model} หรือไม่? ประวัติสต็อกจะยังถูกเก็บไว้`)) return
+const {error}=await supabase.from("cars").delete().eq("id",car.id)
+if(error){alert("ลบรถไม่สำเร็จ รายการนี้อาจถูกใช้งานอยู่หรือไม่มีสิทธิ์");return}
+setSelectedIds((ids)=>ids.filter((id)=>id!==car.id))
+await Promise.all([fetchCars(),fetchHistory()])
 }
 
 
 // ================= UPDATE STATUS =================
 
 const updateStatus = async(car:Car,status:CarStatus)=>{
+if(status==="reserved" && Number(car.stock)<1){alert("เพิ่มสต็อกก่อนจองรถ");return}
 const patch = status === "sold" ? {status,stock:0} : {status,stock:Math.max(1,Number(car.stock)||0)}
 const {error}=await supabase.from("cars").update(patch).eq("id",car.id)
 if(error){alert("เปลี่ยนสถานะไม่สำเร็จ");return}
-fetchCars()
+await Promise.all([fetchCars(),fetchHistory()])
 }
 
 const adjustStock = async(car:Car,delta:number)=>{
 const stock=Math.max(0,(Number(car.stock)||0)+delta)
+if(delta<0 && stock===0 && !confirm(`สต็อก ${car.brand} ${car.model} จะเหลือ 0 และเปลี่ยนเป็นขายแล้ว ยืนยันหรือไม่?`))return
 const status:CarStatus=stock===0?"sold":car.status==="sold"?"available":car.status as CarStatus
 const {error}=await supabase.from("cars").update({stock,status}).eq("id",car.id)
 if(error){alert("ปรับสต็อกไม่สำเร็จ");return}
-fetchCars()
+await Promise.all([fetchCars(),fetchHistory()])
 }
 
 
 // ================= SELL (ตัดสต็อก) =================
 
 const sellCar = async(car:Car)=>{
-if(!confirm(`ยืนยันขาย ${car.brand} ${car.model} 1 คันหรือไม่?`)) return
-
-if(car.stock <= 1){
-
-await supabase
-.from("cars")
-.update({
-stock:0,
-status:"sold"
-})
-.eq("id",car.id)
-
-}else{
-
-await supabase
-.from("cars")
-.update({
-stock:car.stock - 1
-})
-.eq("id",car.id)
-
+if(Number(car.stock)<1){alert("ไม่มีรถคงเหลือให้บันทึกการขาย");return}
+const priceText=window.prompt(`ราคาขายจริงต่อคันของ ${car.brand} ${car.model}`,String(Number(car.price)))
+if(priceText===null)return
+const salePrice=Number(priceText)
+if(!Number.isFinite(salePrice)||salePrice<0){alert("กรุณากรอกราคาขายเป็นตัวเลขตั้งแต่ 0 ขึ้นไป");return}
+if(!confirm(`บันทึกขาย ${car.brand} ${car.model} 1 คัน ในราคา ${salePrice.toLocaleString()} บาทหรือไม่?`))return
+const {error}=await supabase.rpc("record_car_sale",{p_car_id:car.id,p_quantity:1,p_sale_price:salePrice,p_note:"ขายจากหน้าแอดมิน"})
+if(error){alert("บันทึกขายไม่สำเร็จ ตรวจสอบ migration และจำนวนสต็อก");return}
+await Promise.all([fetchCars(),fetchHistory()])
 }
 
-fetchCars()
-
+const toggleSelected=(id:number)=>setSelectedIds((current)=>current.includes(id)?current.filter((item)=>item!==id):[...current,id])
+const togglePageSelection=(pageCars:Car[])=>{
+const pageIds=pageCars.map((car)=>car.id)
+const allSelected=pageIds.length>0 && pageIds.every((id)=>selectedIds.includes(id))
+setSelectedIds((current)=>allSelected?current.filter((id)=>!pageIds.includes(id)):[...new Set([...current,...pageIds])])
+}
+const bulkUpdateCategory=async()=>{
+if(!selectedIds.length || !bulkCategoryId)return
+if(!confirm(`เปลี่ยนหมวดหมู่รถ ${selectedIds.length} รายการหรือไม่?`))return
+const categoryId=bulkCategoryId==="__none__"?null:Number(bulkCategoryId)
+const {error}=await supabase.from("cars").update({category_id:categoryId}).in("id",selectedIds)
+if(error){alert("เปลี่ยนหมวดหมู่ไม่สำเร็จ");return}
+setSelectedIds([]);setBulkCategoryId("");await fetchCars()
+}
+const bulkUpdateStatus=async()=>{
+if(!selectedIds.length || !bulkStatus)return
+const picked=cars.filter((car)=>selectedIds.includes(car.id))
+if(bulkStatus!=="sold" && picked.some((car)=>Number(car.stock)<1)){alert("รถที่สต็อกเป็นศูนย์ต้องเพิ่มสต็อกก่อนตั้งเป็นพร้อมขายหรือจอง");return}
+if(!confirm(`เปลี่ยนสถานะรถ ${selectedIds.length} รายการเป็น “${bulkStatus==="sold"?"ขายแล้ว":bulkStatus==="reserved"?"จองแล้ว":"พร้อมขาย"}” หรือไม่?`))return
+const values=bulkStatus==="sold"?{status:"sold",stock:0}:{status:bulkStatus}
+const {error}=await supabase.from("cars").update(values).in("id",selectedIds)
+if(error){alert("เปลี่ยนสถานะเป็นชุดไม่สำเร็จ");return}
+setSelectedIds([]);setBulkStatus("");await Promise.all([fetchCars(),fetchHistory()])
+}
+const bulkDelete=async()=>{
+if(!selectedIds.length)return
+const phrase=window.prompt(`กำลังลบรถ ${selectedIds.length} รายการอย่างถาวร ประวัติสต็อกยังคงอยู่\nพิมพ์ ลบ เพื่อยืนยัน`)
+if(phrase!=="ลบ")return
+const {error}=await supabase.from("cars").delete().in("id",selectedIds)
+if(error){alert("ลบรายการไม่สำเร็จ");return}
+setSelectedIds([]);await Promise.all([fetchCars(),fetchHistory()])
 }
 
 
@@ -174,7 +221,11 @@ const paginatedCars = filtered.slice(start,start+perPage)
 // ================= STATS =================
 
 const totalCars = cars.length
-const totalValue = cars.reduce((sum,c)=>sum + Number(c.price),0)
+const availableUnits = cars.filter((car)=>car.status==="available").reduce((sum,car)=>sum+Number(car.stock||0),0)
+const reservedUnits = cars.filter((car)=>car.status==="reserved").reduce((sum,car)=>sum+Number(car.stock||0),0)
+const soldCars = cars.filter((car)=>car.status==="sold" || Number(car.stock)===0).length
+const totalValue = cars.filter((car)=>car.status!=="sold").reduce((sum,c)=>sum + Number(c.price)*Number(c.stock||0),0)
+const revenue30Days=sales30Days.reduce((sum,sale)=>sum+Math.abs(Number(sale.quantity_change))*Number(sale.sale_price||0),0)
 
 
 // ================= STYLES =================
@@ -338,7 +389,7 @@ const S = `
 
   /* ── STAT CARDS ── */
   .stats-row {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
     margin-bottom: 24px;
   }
   .stat-card {
@@ -388,7 +439,7 @@ const S = `
   .table-wrap {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px; overflow: hidden;
+    border-radius: 8px; overflow: auto;
   }
   .table-head {
     background: var(--surface2);
@@ -467,17 +518,25 @@ const S = `
   .page-btn:hover { border-color: var(--red); color: var(--red); }
   .page-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
 
+  .bulk-bar,.movement-preview{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px}
+  .bulk-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.bulk-bar select,.bulk-bar button{min-height:40px;padding:8px 12px;border-radius:5px;border:1px solid var(--border-strong);background:var(--surface2);color:var(--text)}
+  .bulk-bar button{cursor:pointer;font-weight:700}.bulk-bar .bulk-danger{background:var(--red-dim);color:var(--red);border-color:rgba(232,25,26,.35)}.bulk-bar button:disabled{opacity:.45;cursor:not-allowed}
+  .stock-stepper{display:inline-flex;align-items:center;gap:8px}.stock-stepper button{width:36px;height:36px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface2);color:var(--text);font-size:1rem;cursor:pointer}.stock-stepper button:disabled{opacity:.4;cursor:not-allowed}
+  .movement-preview h2{font-size:1rem;margin-bottom:12px}.movement-list{display:grid;gap:8px}.movement-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.86rem}.movement-item:last-child{border-bottom:0}.movement-item small{display:block;color:var(--muted2);margin-top:3px}.movement-preview a{color:var(--blue);white-space:nowrap}.inventory-notice{padding:12px 16px;margin-bottom:14px;border-radius:6px;background:rgba(234,179,8,.12);color:var(--yellow)}
+
   /* ── RESPONSIVE ── */
   @media(max-width: 900px) {
-    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
     .filter-bar { grid-template-columns: 1fr 1fr; }
     .admin-content { padding: 16px; }
   }
   @media(max-width: 600px) {
-    .stats-row { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
     .filter-bar { grid-template-columns: 1fr; }
     .nav-pill span { display: none; }
+    .admin-nav{padding:8px 12px}.admin-nav-inner{height:auto;align-items:flex-start;flex-direction:column}.admin-nav-inner>div:last-child{width:100%;justify-content:flex-start!important}.movement-item{align-items:flex-start;flex-direction:column}.movement-item small{display:inline;margin-left:6px}
   }
+  @media(max-width:360px){.stats-row{grid-template-columns:1fr}.bulk-bar>*{width:100%}}
 `
 
 
@@ -540,6 +599,7 @@ return(
         </Link>
         <Link href="/admin/categories" className="nav-pill nav-pill-dark"><span>หมวดหมู่</span></Link>
         <Link href="/admin/inquiries" className="nav-pill nav-pill-dark"><span>คำถามลูกค้า</span></Link>
+        <Link href="/admin/history" className="nav-pill nav-pill-dark"><span>ประวัติสต็อก</span></Link>
         <button onClick={logout} className="nav-pill nav-pill-dark">
           <span>→</span><span>Logout</span>
         </button>
@@ -558,18 +618,27 @@ return(
     {/* STATS */}
     <div className="stats-row">
       <div className="stat-card blue">
-        <div className="stat-label">รถทั้งหมด</div>
+        <div className="stat-label">รายการรถ</div>
         <div className="stat-value blue">{totalCars}</div>
       </div>
       <div className="stat-card red">
-        <div className="stat-label">มูลค่ารถทั้งหมด</div>
+        <div className="stat-label">มูลค่าสต็อกคงเหลือ</div>
         <div className="stat-value red">{totalValue.toLocaleString()} ฿</div>
       </div>
       <div className="stat-card green">
-        <div className="stat-label">รถในหน้านี้</div>
-        <div className="stat-value green">{paginatedCars.length}</div>
+        <div className="stat-label">พร้อมขาย / จอง</div>
+        <div className="stat-value green">{availableUnits} / {reservedUnits}</div>
+      </div>
+      <div className="stat-card blue">
+        <div className="stat-label">ขายแล้ว</div>
+        <div className="stat-value blue">{soldCars}</div>
+      </div>
+      <div className="stat-card red">
+        <div className="stat-label">ยอดขาย 30 วัน</div>
+        <div className="stat-value red">{revenue30Days.toLocaleString()} ฿</div>
       </div>
     </div>
+    {historyWarning && <p className="inventory-notice" role="status">{historyWarning}</p>}
 
     {/* FILTER */}
     <div className="filter-bar">
@@ -602,11 +671,27 @@ return(
       />
     </div>
 
+    {selectedIds.length>0 && <div className="bulk-bar" aria-label="จัดการรถที่เลือก">
+      <strong>เลือก {selectedIds.length} รายการ</strong>
+      <select aria-label="เปลี่ยนหมวดหมู่รถที่เลือก" value={bulkCategoryId} onChange={(event)=>setBulkCategoryId(event.target.value)}>
+        <option value="">เลือกหมวดหมู่เพื่อเปลี่ยน</option><option value="__none__">ไม่ระบุหมวดหมู่</option>
+        {categories.map((category)=><option key={category.id} value={category.id}>{category.name}</option>)}
+      </select>
+      <button type="button" disabled={!bulkCategoryId} onClick={()=>void bulkUpdateCategory()}>ใช้หมวดหมู่</button>
+      <select aria-label="เปลี่ยนสถานะรถที่เลือก" value={bulkStatus} onChange={(event)=>setBulkStatus(event.target.value)}>
+        <option value="">เลือกสถานะเพื่อเปลี่ยน</option><option value="available">พร้อมขาย</option><option value="reserved">จองแล้ว</option><option value="sold">ขายแล้ว / ตัดสต็อกเป็นศูนย์</option>
+      </select>
+      <button type="button" disabled={!bulkStatus} onClick={()=>void bulkUpdateStatus()}>ใช้สถานะ</button>
+      <button type="button" className="bulk-danger" onClick={()=>void bulkDelete()}>ลบที่เลือก</button>
+      <button type="button" onClick={()=>setSelectedIds([])}>ล้างการเลือก</button>
+    </div>}
+
     {/* TABLE */}
     <div className="table-wrap">
       <table>
         <thead className="table-head">
           <tr>
+            <th className="center"><input type="checkbox" aria-label="เลือกหรือยกเลิกรถทั้งหมดในหน้านี้" checked={paginatedCars.length>0 && paginatedCars.every((car)=>selectedIds.includes(car.id))} onChange={()=>togglePageSelection(paginatedCars)} /></th>
             <th>รถ</th>
             <th className="center">ปี</th>
             <th className="center">ราคา</th>
@@ -616,10 +701,12 @@ return(
           </tr>
         </thead>
         <tbody>
+          {paginatedCars.length===0 && <tr><td colSpan={7} style={{textAlign:"center",padding:24,color:"var(--muted2)"}}>ไม่พบรถตามตัวกรอง</td></tr>}
           {paginatedCars.map((car)=>{
             const img = car.image_url?.split(",")[0]
             return(
               <tr key={car.id}>
+                <td className="center"><input type="checkbox" aria-label={`เลือกรถ ${car.brand} ${car.model}`} checked={selectedIds.includes(car.id)} onChange={()=>toggleSelected(car.id)} /></td>
                 <td>
                   <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
                     <Image src={img || "/file.svg"} alt={`${car.brand} ${car.model}`} width={64} height={48} className="car-thumb" />
@@ -634,7 +721,7 @@ return(
                   {Number(car.price).toLocaleString()}
                 </td>
                 <td className="center" style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:'1.1rem',letterSpacing:'0.06em'}}>
-                  <div style={{display:'inline-flex',alignItems:'center',gap:8}}>
+                  <div className="stock-stepper">
                     <button aria-label={`ลดสต็อก ${car.brand} ${car.model}`} onClick={()=>adjustStock(car,-1)} disabled={Number(car.stock)<=0}>−</button>
                     <strong>{car.stock ?? 0}</strong>
                     <button aria-label={`เพิ่มสต็อก ${car.brand} ${car.model}`} onClick={()=>adjustStock(car,1)}>＋</button>
@@ -652,10 +739,10 @@ return(
                 <td className="center">
                   <div className="action-btns">
                     <a href={`/admin/edit/${car.id}`} className="act-btn act-edit">Edit</a>
-                    <button onClick={()=>sellCar(car)} className="act-btn act-sell">ขาย</button>
-                    <button onClick={()=>updateStatus(car,car.status === "reserved" ? "available" : "reserved")} className="act-btn act-sold">{car.status === "reserved" ? "ยกเลิกจอง" : "จอง"}</button>
+                    <button disabled={car.status === "sold" || Number(car.stock)<1} onClick={()=>sellCar(car)} className="act-btn act-sell">ขาย</button>
+                    {car.status !== "sold" && <button onClick={()=>updateStatus(car,car.status === "reserved" ? "available" : "reserved")} className="act-btn act-sold">{car.status === "reserved" ? "ยกเลิกจอง" : "จอง"}</button>}
                     {car.status !== "sold" && <button onClick={()=>updateStatus(car,"sold")} className="act-btn act-sold">ขายหมด</button>}
-                    <button onClick={()=>deleteCar(car.id)} className="act-btn act-del">Delete</button>
+                    <button onClick={()=>deleteCar(car)} className="act-btn act-del">ลบ</button>
                   </div>
                 </td>
               </tr>
@@ -664,6 +751,14 @@ return(
         </tbody>
       </table>
     </div>
+
+    <section className="movement-preview" aria-label="ประวัติสต็อกล่าสุด">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:12}}><h2>ประวัติสต็อกล่าสุด</h2><Link href="/admin/history">ดูทั้งหมด →</Link></div>
+      {movements.length===0 ? <p style={{color:'var(--muted2)'}}>ยังไม่มีประวัติ หรือยังไม่ได้ติดตั้ง migration</p> : <div className="movement-list">{movements.map((movement)=><div className="movement-item" key={movement.id}>
+        <span><strong>{movement.car_label}</strong><small>{movement.event_type==="sale"?"ขายรถ":movement.event_type==="stock_received"?"รับรถเข้าสต็อก":movement.event_type==="stock_adjustment"?"ปรับสต็อก":movement.event_type==="car_deleted"?"ลบรายการรถ":"เปลี่ยนสถานะ"} · {new Date(movement.created_at).toLocaleString("th-TH")} · {movement.actor_email||"ไม่ระบุผู้ใช้"}</small></span>
+        <span>{movement.quantity_change>0?`+${movement.quantity_change}`:movement.quantity_change} คัน · คงเหลือ {movement.stock_after}{movement.event_type==="sale"&&movement.sale_price!==null?` · ${Number(movement.sale_price).toLocaleString()} ฿/คัน`:""}</span>
+      </div>)}</div>}
+    </section>
 
     {/* PAGINATION */}
     <div className="pagination">

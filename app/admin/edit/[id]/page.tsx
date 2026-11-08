@@ -41,6 +41,12 @@ e.preventDefault()
 setLoading(true)
 
 const form = new FormData(e.currentTarget)
+const year=Number(form.get("year")), price=Number(form.get("price")), mileage=Number(form.get("mileage"))
+if(!String(form.get("brand")??"").trim() || !String(form.get("model")??"").trim() || !Number.isInteger(year) || year<1900 || year>new Date().getFullYear()+1 || !Number.isFinite(price) || price<=0 || !Number.isFinite(mileage) || mileage<0){
+alert("ตรวจข้อมูลยี่ห้อ รุ่น ปี ราคา และเลขไมล์ให้ถูกต้องก่อนบันทึก")
+setLoading(false)
+return
+}
 
 const {error} = await supabase
 .from("cars")
@@ -419,27 +425,27 @@ return(
 
             <div className="field">
               <label className="field-label">ยี่ห้อ</label>
-              <input name="brand" defaultValue={car.brand} className="field-input"/>
+              <input name="brand" required maxLength={80} defaultValue={car.brand} className="field-input"/>
             </div>
 
             <div className="field">
               <label className="field-label">รุ่น</label>
-              <input name="model" defaultValue={car.model} className="field-input"/>
+              <input name="model" required maxLength={100} defaultValue={car.model} className="field-input"/>
             </div>
 
             <div className="field">
               <label className="field-label">ปี</label>
-              <input name="year" defaultValue={car.year} className="field-input"/>
+              <input name="year" type="number" min="1900" max={new Date().getFullYear()+1} required defaultValue={car.year} className="field-input"/>
             </div>
 
             <div className="field">
               <label className="field-label">ราคา (บาท)</label>
-              <input name="price" defaultValue={car.price} className="field-input"/>
+              <input name="price" type="number" min="1" step="1" required defaultValue={car.price} className="field-input"/>
             </div>
 
             <div className="field">
               <label className="field-label">เลขไมล์ (กม.)</label>
-              <input name="mileage" defaultValue={car.mileage} className="field-input"/>
+              <input name="mileage" type="number" min="0" step="1" required defaultValue={car.mileage} className="field-input"/>
             </div>
 
             <div className="field">
