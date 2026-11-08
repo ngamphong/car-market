@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useState, type FormEvent } from "react"
 import { supabase } from "../../../lib/supabase"
 import type { Category } from "../../types"
+import ThemeToggle from "../../components/ThemeToggle"
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -82,7 +83,7 @@ export default function CategoriesPage() {
           <p className="admin-tool-eyebrow">KKC CAR HUB · ADMIN</p>
           <h1>จัดการหมวดหมู่รถ</h1>
         </div>
-        <Link href="/admin" className="admin-tool-back">กลับหน้าแอดมิน</Link>
+        <div className="admin-tool-header-actions"><ThemeToggle /><Link href="/admin" className="admin-tool-back">กลับหน้าแอดมิน</Link></div>
       </header>
 
       <form className="admin-tool-form" onSubmit={saveCategory}>
@@ -110,7 +111,7 @@ export default function CategoriesPage() {
 
       <style jsx>{`
         .admin-tool-page{min-height:100vh;background:var(--black,#0a0a0a);color:var(--text,#f0eee9);padding:24px max(16px,calc((100vw - 900px)/2));font-family:Arial,sans-serif}
-        .admin-tool-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}
+        .admin-tool-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}.admin-tool-header-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
         .admin-tool-header h1{font-size:clamp(1.4rem,4vw,2rem);margin:5px 0 0}
         .admin-tool-eyebrow{color:#e8191a;font-size:.72rem;letter-spacing:.14em;margin:0}
         .admin-tool-back{color:var(--text,#f0eee9)}
@@ -126,7 +127,7 @@ export default function CategoriesPage() {
         .category-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border,rgba(255,255,255,.1))}
         .category-row:last-child{border-bottom:0}
         .category-row div{display:flex;gap:8px}
-        @media(max-width:480px){.admin-tool-header{align-items:flex-start;flex-direction:column}.admin-tool-form,.category-list{padding:14px}.category-row{align-items:flex-start}.admin-tool-form-row button{flex:1}}
+        @media(max-width:480px){.admin-tool-header{align-items:flex-start;flex-direction:column}.admin-tool-header-actions{width:100%;justify-content:space-between}.admin-tool-form,.category-list{padding:14px}.category-row{align-items:flex-start}.admin-tool-form-row button{flex:1}}
       `}</style>
     </main>
   )

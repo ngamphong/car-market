@@ -32,6 +32,41 @@
   --text: #171717;
   --muted: #626773;
   --muted2: #626773;
+  --border-strong: rgba(23, 23, 23, 0.16);
+}
+
+:root[data-theme="light"] .cf-wrap { background:#fff; border-color:#d7d9de; }
+:root[data-theme="light"] .cf-header,
+:root[data-theme="light"] .cf-select { background-color:#f0f1f3; border-color:#d7d9de; }
+:root[data-theme="light"] .cf-title,
+:root[data-theme="light"] .cf-price-val,
+:root[data-theme="light"] .cf-down-val.accent,
+:root[data-theme="light"] .cf-select { color:#171717; }
+:root[data-theme="light"] .cf-price-label,
+:root[data-theme="light"] .cf-control-label,
+:root[data-theme="light"] .cf-down-label { color:#626773; }
+:root[data-theme="light"] .cf-down-row { background:#f5f6f8; border-color:#d7d9de; }
+:root[data-theme="light"] .cf-slider { background:linear-gradient(to right,#e8191a 0%,#e8191a var(--pct,40%),#d7d9de var(--pct,40%),#d7d9de 100%); }
+:root[data-theme="light"] .cf-slider::-webkit-slider-thumb { border-color:#fff; }
+:root[data-theme="light"] .cf-result-note { color:#626773; }
+:root[data-theme="light"] .btn-save { color:#454a54; border-color:#c7cad1; background:#fff; }
+:root[data-theme="light"] .btn-save:hover { color:#b71212; border-color:#b71212; }
+:root[data-theme="light"] .btn-share { color:#171717; background:#f0f1f3; border-color:#c7cad1; }
+:root[data-theme="light"] .inquiry-form input,
+:root[data-theme="light"] .inquiry-form textarea { color:#171717; background:#fff; border-color:#c7cad1; }
+:root[data-theme="light"] .inquiry-form input::placeholder,
+:root[data-theme="light"] .inquiry-form textarea::placeholder { color:#626773; }
+:root[data-theme="light"] .btn-inquiry { background:#b71212; color:#fff; }
+:root[data-theme="light"] .theme-toggle { color:#171717; }
+:root[data-theme="light"] .nav-pill-green { color:#166534; border-color:rgba(22,101,52,.28); background:rgba(34,197,94,.12); }
+:root[data-theme="light"] .nav-pill-purple { color:#6d28d9; border-color:rgba(109,40,217,.25); background:rgba(139,92,246,.10); }
+:root[data-theme="light"] .act-sold { color:#454a54; }
+
+@media (max-width: 480px) {
+  .theme-toggle { min-height:44px; }
+  .btn-call, .btn-line, .btn-save, .btn-share, .btn-inquiry { min-height:44px; }
+  .cf-select { min-height:44px; }
+  .cf-slider { min-height:24px; touch-action:pan-y; }
 }
 
 @theme inline {

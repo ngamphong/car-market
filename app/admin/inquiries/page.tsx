@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { supabase } from "../../../lib/supabase"
 import type { CustomerInquiry } from "../../types"
+import ThemeToggle from "../../components/ThemeToggle"
 
 export default function InquiriesPage() {
   const [inquiries, setInquiries] = useState<CustomerInquiry[]>([])
@@ -43,7 +44,7 @@ export default function InquiriesPage() {
     <main className="inquiries-page">
       <header className="inquiries-header">
         <div><p>KKC CAR HUB · ADMIN</p><h1>คำถามจากลูกค้า</h1></div>
-        <Link href="/admin">กลับหน้าแอดมิน</Link>
+        <div className="inquiries-header-actions"><ThemeToggle /><Link href="/admin">กลับหน้าแอดมิน</Link></div>
       </header>
       {!signedIn && !loading ? <p>กรุณาเข้าสู่ระบบผู้ดูแลระบบก่อนดูข้อมูลลูกค้า <Link href="/admin">เข้าสู่ระบบ</Link></p> : null}
       {notice && <p className="inquiries-notice" role="status">{notice}</p>}
@@ -67,7 +68,7 @@ export default function InquiriesPage() {
       </section>
       <style jsx>{`
         .inquiries-page{min-height:100vh;background:var(--black,#0a0a0a);color:var(--text,#f0eee9);padding:24px max(16px,calc((100vw - 1000px)/2));font-family:Arial,sans-serif}
-        .inquiries-header,.inquiry-card-top,.inquiry-contact{display:flex;justify-content:space-between;align-items:center;gap:14px}
+        .inquiries-header,.inquiry-card-top,.inquiry-contact{display:flex;justify-content:space-between;align-items:center;gap:14px}.inquiries-header-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
         .inquiries-header{margin-bottom:22px}.inquiries-header h1{font-size:clamp(1.4rem,4vw,2rem);margin:4px 0}.inquiries-header p{color:#e8191a;font-size:.72rem;letter-spacing:.14em}
         .inquiries-header a,.inquiry-contact a{color:var(--text,#f0eee9)}
         .inquiries-notice{padding:12px 16px;background:var(--surface,#17171b);border-radius:8px}
@@ -75,7 +76,7 @@ export default function InquiriesPage() {
         .inquiry-card h2{font-size:1.05rem;margin:0 0 5px}.inquiry-card-top p{margin:0;color:var(--muted,#888);font-size:.85rem}
         select{max-width:100%;padding:9px;border-radius:6px;background:var(--surface2,#1f1f25);color:var(--text,#f0eee9);border:1px solid var(--border-s,#444)}
         .inquiry-message{white-space:pre-wrap;line-height:1.6}.inquiry-contact{justify-content:flex-start;flex-wrap:wrap;color:var(--muted2,#aaa);font-size:.9rem}
-        @media(max-width:520px){.inquiries-header,.inquiry-card-top{align-items:flex-start;flex-direction:column}.inquiry-card{padding:14px}.inquiry-card-top select{width:100%}}
+        @media(max-width:520px){.inquiries-header,.inquiry-card-top{align-items:flex-start;flex-direction:column}.inquiries-header-actions{width:100%;justify-content:space-between}.inquiry-card{padding:14px}.inquiry-card-top select{width:100%}}
       `}</style>
     </main>
   )

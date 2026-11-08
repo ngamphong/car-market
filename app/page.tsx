@@ -430,7 +430,7 @@ return(
     .kkc-sell h2{font-size:2rem}
     .kkc-sell::before{font-size:110px}
   }
-  @media(max-width:360px){.theme-toggle{padding:7px;font-size:0}.theme-toggle::first-letter{font-size:14px}}
+  @media(max-width:360px){.theme-toggle{padding:7px 9px;gap:4px;font-size:11px}.theme-toggle span:first-child{font-size:14px}}
 `}</style>
 
 <style>{`
@@ -446,6 +446,9 @@ return(
   :root[data-theme="light"] .kkc-input,
   :root[data-theme="light"] .kkc-select { background: var(--site-surface-2); color: var(--site-text); border-color: var(--site-border); }
   :root[data-theme="light"] .kkc-input::placeholder { color: var(--site-muted); }
+  :root[data-theme="light"] .kkc-hamburger { color: var(--site-text); border-color: var(--site-border); background: var(--site-surface); }
+  :root[data-theme="light"] .kkc-mobile-menu { border-color: var(--site-border); }
+  :root[data-theme="light"] .kkc-mobile-menu a { display:block; padding:.65rem 0; color:var(--site-text); text-decoration:none; border-bottom:1px solid var(--site-border); }
   :root[data-theme="light"] .kkc-footer p,
   :root[data-theme="light"] .kkc-footer-bar { color: var(--site-muted); }
 `}</style>

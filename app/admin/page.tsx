@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabase"
 import Link from "next/link"
 import Image from "next/image"
+import ThemeToggle from "../components/ThemeToggle"
 import type { User } from "@supabase/supabase-js"
 import type { Car, CarStatus } from "../types"
 
@@ -530,6 +531,7 @@ return(
         <span className="admin-brand-sub">Admin Dashboard</span>
       </div>
       <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
+        <ThemeToggle />
         <Link href="/admin/add" className="nav-pill nav-pill-green">
           <span>＋</span><span>เพิ่มรถ</span>
         </Link>
