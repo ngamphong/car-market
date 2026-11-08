@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { supabase } from "../../../lib/supabase"
+import Link from "next/link"
+import Image from "next/image"
+import type { ChangeEvent } from "react"
+import type { Banner } from "../../types"
 
 export default function BannerPage(){
 
 const [file,setFile] = useState<File|null>(null)
 const [preview,setPreview] = useState<string>("")
-const [banners,setBanners] = useState<any[]>([])
+const [banners,setBanners] = useState<Banner[]>([])
 const [loading,setLoading] = useState(false)
 
 
@@ -28,12 +32,22 @@ setBanners(data || [])
 }
 
 useEffect(()=>{
-loadBanners()
+let active = true
+void supabase.from("banners").select("*").order("created_at",{ascending:false}).then(({ data, error }) => {
+  if (!active) return
+  if (error) {
+    console.error(error)
+    alert("โหลด banner ไม่สำเร็จ")
+    return
+  }
+  setBanners((data ?? []) as Banner[])
+})
+return () => { active = false }
 },[])
 
 
 // ================= PREVIEW =================
-const handleFileChange = (e:any)=>{
+const handleFileChange = (e:ChangeEvent<HTMLInputElement>)=>{
 const f = e.target.files?.[0]
 if(!f) return
 
@@ -416,7 +430,7 @@ return(
   <nav className="banner-nav">
     <div className="banner-nav-inner">
       <div className="nav-brand">KKC <span>CAR</span> HUB</div>
-      <a href="/admin" className="nav-back">← กลับ Admin</a>
+      <Link href="/admin" className="nav-back">← กลับ Admin</Link>
     </div>
   </nav>
 
@@ -455,7 +469,7 @@ return(
         {preview && (
           <div className="preview-wrap">
             <div className="preview-label">Preview</div>
-            <img src={preview} className="preview-img"/>
+            <Image src={preview} alt="ตัวอย่างแบนเนอร์" width={1200} height={400} unoptimized className="preview-img"/>
             <div className="preview-filename">
               <span>📎</span>
               <span>{file?.name}</span>
@@ -493,7 +507,7 @@ return(
         </div>
       ) : banners.map((b)=>(
         <div key={b.id} className="banner-item">
-          <img src={b.image_url} className="banner-img"/>
+          <Image src={b.image_url} alt={`แบนเนอร์ ${b.id}`} width={600} height={200} className="banner-img"/>
           <div className="banner-item-footer">
             <span className="banner-id">ID: {b.id}</span>
             <button

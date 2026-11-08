@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabase"
+import Link from "next/link"
+import Image from "next/image"
+import type { User } from "@supabase/supabase-js"
+import type { Car } from "../types"
 
 export default function AdminPage() {
 
-const [user,setUser] = useState<any>(null)
-const [cars,setCars] = useState<any[]>([])
+const [user,setUser] = useState<User | null>(null)
+const [cars,setCars] = useState<Car[]>([])
 const [loading,setLoading] = useState(true)
 
 const [search,setSearch] = useState("")
@@ -28,14 +32,22 @@ setLoading(false)
 }
 
 useEffect(()=>{
-checkUser()
-fetchCars()
+let active = true
+void supabase.auth.getUser().then(({ data }) => {
+  if (!active) return
+  setUser(data.user)
+  setLoading(false)
+})
+void supabase.from("cars").select("*").order("created_at",{ascending:false}).then(({ data }) => {
+  if (active) setCars((data ?? []) as Car[])
+})
+return () => { active = false }
 },[])
 
-const login = async(e:any)=>{
+const login = async(e:React.FormEvent<HTMLFormElement>)=>{
 e.preventDefault()
 
-const form = new FormData(e.target)
+const form = new FormData(e.currentTarget)
 
 await supabase.auth.signInWithPassword({
 email:form.get("email") as string,
@@ -95,7 +107,7 @@ fetchCars()
 
 // ================= SELL (ตัดสต็อก) =================
 
-const sellCar = async(car:any)=>{
+const sellCar = async(car:Car)=>{
 
 if(car.stock <= 1){
 
@@ -463,6 +475,15 @@ const S = `
 
 // ================= LOGIN PAGE =================
 
+if(loading){
+return(
+<>
+<style>{S}</style>
+<div className="login-page" role="status" aria-live="polite">กำลังตรวจสอบบัญชีผู้ดูแลระบบ…</div>
+</>
+)
+}
+
 if(!user){
 return(
 <>
@@ -498,16 +519,16 @@ return(
   <nav className="admin-nav">
     <div className="admin-nav-inner">
       <div>
-        <a href="/"><div className="admin-brand">KKC <span>CAR</span> HUB</div></a>
+        <Link href="/"><div className="admin-brand">KKC <span>CAR</span> HUB</div></Link>
         <span className="admin-brand-sub">Admin Dashboard</span>
       </div>
       <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
-        <a href="/admin/add" className="nav-pill nav-pill-green">
+        <Link href="/admin/add" className="nav-pill nav-pill-green">
           <span>＋</span><span>เพิ่มรถ</span>
-        </a>
-        <a href="admin/banner/" className="nav-pill nav-pill-purple">
+        </Link>
+        <Link href="/admin/banner" className="nav-pill nav-pill-purple">
           <span>⊞</span><span>จัดการ Banner</span>
-        </a>
+        </Link>
         <button onClick={logout} className="nav-pill nav-pill-dark">
           <span>→</span><span>Logout</span>
         </button>
@@ -587,7 +608,7 @@ return(
               <tr key={car.id}>
                 <td>
                   <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
-                    <img src={img} className="car-thumb"/>
+                    <Image src={img || "/file.svg"} alt={`${car.brand} ${car.model}`} width={64} height={48} className="car-thumb" />
                     <div>
                       <div className="car-row-name">{car.brand} {car.model}</div>
                       <div className="car-row-sub">{car.mileage?.toLocaleString()} km</div>

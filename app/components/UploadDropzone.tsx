@@ -1,12 +1,13 @@
 "use client"
+import type { Dispatch, DragEvent, ChangeEvent, SetStateAction } from "react"
 
-export default function UploadDropzone({setFiles}:any){
+export default function UploadDropzone({setFiles}:{setFiles:Dispatch<SetStateAction<File[]>>}){
 
-const handleDrop=(e:any)=>{
+const handleDrop=(e:DragEvent<HTMLDivElement>)=>{
 
 e.preventDefault()
 
-const files=Array.from(e.dataTransfer.files)
+const files=Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith("image/"))
 
 setFiles(files)
 
@@ -25,7 +26,8 @@ className="border-2 border-dashed p-10 text-center rounded-xl"
 <input
 type="file"
 multiple
-onChange={(e)=>setFiles(Array.from(e.target.files!))}
+accept="image/*"
+onChange={(e:ChangeEvent<HTMLInputElement>)=>setFiles(Array.from(e.target.files ?? []).filter((file) => file.type.startsWith("image/")))}
 />
 
 </div>

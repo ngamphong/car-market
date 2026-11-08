@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    root: process.cwd(),
+  },
   images: {
-    domains: [
-      "bferxknatakjymihgsbs.supabase.co"
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "bferxknatakjymihgsbs.supabase.co",
+      },
     ],
   },
 }

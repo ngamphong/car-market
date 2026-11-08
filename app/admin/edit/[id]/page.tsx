@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../../../../lib/supabase"
 import { useRouter, useParams } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
+import type { Car, Category } from "../../../types"
 
 export default function EditCarPage(){
 
@@ -11,58 +14,33 @@ const params = useParams()
 
 const id = params.id as string
 
-const [car,setCar] = useState<any>(null)
+const [car,setCar] = useState<Car | null>(null)
 const [loading,setLoading] = useState(false)
-const [categories,setCategories] = useState<any[]>([])
-
-// ---------------- โหลดข้อมูลรถ ----------------
-
-const fetchCar = async()=>{
-
-const {data} = await supabase
-.from("cars")
-.select("*")
-.eq("id",id)
-.single()
-
-setCar(data)
-
-}
+const [categories,setCategories] = useState<Category[]>([])
 
 useEffect(()=>{
-if(id){
-fetchCar()
-}
-},[id])
-
-
-// ---------------- categories ----------------
-const loadCategories = async()=>{
-
-const { data } = await supabase
-.from("categories")
-.select("*")
-
-setCategories(data || [])
-
-}
-useEffect(()=>{
-if(id){
-fetchCar()
-loadCategories()
-}
+let active = true
+void Promise.all([
+  supabase.from("cars").select("*").eq("id",id).single(),
+  supabase.from("categories").select("*"),
+]).then(([carResult, categoryResult]) => {
+  if (!active) return
+  setCar((carResult.data ?? null) as Car | null)
+  setCategories((categoryResult.data ?? []) as Category[])
+})
+return () => { active = false }
 },[id])
 
 
 // ---------------- UPDATE ----------------
 
-const handleSubmit = async(e:any)=>{
+const handleSubmit = async(e:React.FormEvent<HTMLFormElement>)=>{
 
 e.preventDefault()
 
 setLoading(true)
 
-const form = new FormData(e.target)
+const form = new FormData(e.currentTarget)
 
 const {error} = await supabase
 .from("cars")
@@ -398,7 +376,7 @@ return(
   <nav className="edit-nav">
     <div className="edit-nav-inner">
       <div className="nav-brand">KKC <span>CAR</span> HUB</div>
-      <a href="/admin" className="nav-back">← กลับ Admin</a>
+      <Link href="/admin" className="nav-back">← กลับ Admin</Link>
     </div>
   </nav>
 
@@ -419,7 +397,7 @@ return(
       {/* LEFT — PHOTO */}
       <div className="photo-card">
         <div className="photo-top-stripe"/>
-        <img src={img} className="car-photo"/>
+        <Image src={img} alt={`${car.brand} ${car.model}`} width={640} height={420} className="car-photo" />
         <div className="photo-info">
           <div className="photo-car-name">{car.brand} {car.model}</div>
           <div className="photo-car-sub">ปี {car.year} · {Number(car.mileage).toLocaleString()} กม.</div>
@@ -466,7 +444,7 @@ return(
 
             <div className="field">
               <label className="field-label">หมวดหมู่</label>
-              <select name="category_id" defaultValue={car.category_id} className="field-input">
+              <select name="category_id" defaultValue={car.category_id ?? ""} className="field-input">
                 <option value="">เลือกหมวดหมู่</option>
                 {categories.map((c)=>(
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -483,7 +461,7 @@ return(
           <div className="field">
             <textarea
               name="description"
-              defaultValue={car.description}
+              defaultValue={car.description ?? ""}
               className="field-input"
             />
           </div>

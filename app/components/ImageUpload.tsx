@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
+import type { Dispatch, DragEvent, ChangeEvent, SetStateAction } from "react";
 
-export default function ImageUpload({ files, setFiles }: any) {
+type ImageUploadProps = {
+  files: File[]
+  setFiles: Dispatch<SetStateAction<File[]>>
+}
 
-  const handleDrop = (e:any)=>{
+export default function ImageUpload({ files, setFiles }: ImageUploadProps) {
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>)=>{
     e.preventDefault()
-    const dropped = Array.from(e.dataTransfer.files)
-    setFiles((prev:any)=>[...prev,...dropped])
+    const dropped = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith("image/"))
+    setFiles((prev)=>[...prev,...dropped])
   }
 
-  const handleChange = (e:any)=>{
-    const selected = Array.from(e.target.files)
-    setFiles((prev:any)=>[...prev,...selected])
+  const handleChange = (e: ChangeEvent<HTMLInputElement>)=>{
+    const selected = Array.from(e.target.files ?? []).filter((file) => file.type.startsWith("image/"))
+    setFiles((prev)=>[...prev,...selected])
   }
 
   return (
@@ -38,13 +44,18 @@ export default function ImageUpload({ files, setFiles }: any) {
       {/* preview */}
       <div className="grid grid-cols-3 gap-3 mt-4">
 
-        {files.map((file:any,i:number)=>(
-          <img
+        {files.map((file,i)=>{
+          const preview = URL.createObjectURL(file)
+          return <Image
             key={i}
-            src={URL.createObjectURL(file)}
+            src={preview}
+            alt={`ตัวอย่างรูปที่ ${i + 1}`}
+            width={240}
+            height={96}
+            unoptimized
             className="h-24 w-full object-cover rounded"
           />
-        ))}
+        })}
 
       </div>
 

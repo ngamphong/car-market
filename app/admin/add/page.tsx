@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../../../lib/supabase"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
+import type { Category } from "../../types"
 
 export default function AddCarPage() {
 
@@ -13,21 +16,17 @@ const [preview,setPreview] = useState<string[]>([])
 const [loading,setLoading] = useState(false)
 
 // ✅ NEW: categories
-const [categories, setCategories] = useState<any[]>([])
+const [categories, setCategories] = useState<Category[]>([])
 
 
 // ================= โหลดหมวด =================
 useEffect(()=>{
-loadCategories()
+let active = true
+void supabase.from("categories").select("*").then(({ data }) => {
+  if (active) setCategories((data ?? []) as Category[])
+})
+return () => { active = false }
 },[])
-
-const loadCategories = async()=>{
-const { data } = await supabase
-.from("categories")
-.select("*")
-
-setCategories(data || [])
-}
 
 
 // ================= เลือกรูป =================
@@ -56,7 +55,7 @@ setLoading(true)
 
 const form = new FormData(e.currentTarget)
 
-let imageUrls:string[]=[]
+const imageUrls:string[]=[]
 
 
 // ---------- upload รูป ----------
@@ -403,7 +402,7 @@ return(
   <nav className="add-nav">
     <div className="add-nav-inner">
       <div className="nav-brand">KKC <span>CAR</span> HUB</div>
-      <a href="/admin" className="nav-back">← กลับ Admin</a>
+      <Link href="/admin" className="nav-back">← กลับ Admin</Link>
     </div>
   </nav>
 
@@ -493,7 +492,7 @@ return(
             </div>
             <div className="preview-grid">
               {preview.map((img,i)=>(
-                <img key={i} src={img} className="preview-thumb"/>
+                <Image key={i} src={img} alt={`ตัวอย่างรูปรถที่ ${i + 1}`} width={240} height={160} unoptimized className="preview-thumb"/>
               ))}
             </div>
           </>

@@ -1,8 +1,10 @@
 import Link from "next/link"
+import Image from "next/image"
+import type { Car } from "../types"
 
-export default function CarCard({ car }: any) {
+export default function CarCard({ car }: { car: Car }) {
 
-const image = car.image_url.split(",")[0]
+const image = car.image_url.split(",")[0] || "/file.svg"
 
 return (
 
@@ -11,10 +13,13 @@ return (
 <div className="border rounded-xl overflow-hidden hover:shadow-xl transition bg-white group">
 
 {/* IMAGE */}
-<div className="relative">
+<div className="relative h-48">
 
-<img
+<Image
 src={image}
+alt={`${car.brand} ${car.model}`}
+fill
+sizes="(max-width: 767px) 50vw, 33vw"
 className="w-full h-48 object-cover group-hover:scale-105 transition"
 />
 

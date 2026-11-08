@@ -1,18 +1,21 @@
 import { supabase } from "../../../lib/supabase"
+import Link from "next/link"
 import ImageGallery from "../../components/ImageGallery"
 import CarCard from "../../components/CarCard"
 import CarFinance from "../../components/CarFinance"
 import ThemeToggle from "../../components/ThemeToggle"
+import type { Car } from "../../types"
 
 export default async function CarDetail({ params }: { params: Promise<{ id: string }> }) {
 
 const { id } = await params
 
-const { data: car } = await supabase
+const { data: carData } = await supabase
 .from("cars")
 .select("*")
 .eq("id", id)
 .single()
+const car = carData as Car | null
 
 if (!car) {
 return (
@@ -30,12 +33,13 @@ return (
 
 const images = car.image_url.split(",")
 
-const { data: recommend } = await supabase
+const { data: recommendData } = await supabase
 .from("cars")
 .select("*")
 .neq("id", id)
 .neq("status", "sold")
 .limit(3)
+const recommend = (recommendData ?? []) as Car[]
 
 const isSold = car.stock === 0 || car.status === "sold"
 
@@ -393,9 +397,9 @@ return(
   {/* BREADCRUMB */}
   <div className="breadcrumb-bar">
     <div className="breadcrumb-inner">
-      <a href="/">หน้าแรก</a>
+      <Link href="/">หน้าแรก</Link>
       <span>/</span>
-      <a href="/">รถมือสอง</a>
+      <Link href="/">รถมือสอง</Link>
       <span>/</span>
       <span style={{color:'var(--text)'}}>{car.brand} {car.model}</span>
       <ThemeToggle />
@@ -520,7 +524,7 @@ return(
   <div className="recommend-section">
     <h2 className="recommend-title">🚗 รถแนะนำ</h2>
     <div className="recommend-grid">
-      {recommend?.map((car:any)=>(
+      {recommend.map((car)=>(
         <CarCard key={car.id} car={car}/>
       ))}
     </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 
 export default function ImageGallery({ images }: { images: string[] }) {
 
@@ -12,10 +13,13 @@ return(
 
 {/* รูปใหญ่ */}
 
-<div className="border rounded-lg overflow-hidden">
+<div className="relative h-[400px] border rounded-lg overflow-hidden">
 
-<img
+<Image
 src={main}
+alt="รูปรถยนต์"
+fill
+sizes="(max-width: 768px) 100vw, 60vw"
 className="w-full h-[400px] object-cover hover:scale-110 transition duration-300 cursor-zoom-in"
 />
 
@@ -28,9 +32,12 @@ className="w-full h-[400px] object-cover hover:scale-110 transition duration-300
 
 {images.map((img,index)=>(
 
-<img
+<Image
 key={index}
 src={img}
+alt={`รูปที่ ${index + 1} ของรถยนต์`}
+width={96}
+height={80}
 onClick={()=>setMain(img)}
 className={`w-24 h-20 object-cover rounded cursor-pointer border
 ${main===img ? "border-red-500":"border-gray-200"}

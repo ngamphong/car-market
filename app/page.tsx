@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect,useState } from "react"
+import Link from "next/link"
 import { supabase } from "../lib/supabase"
 import CarCard from "./components/CarCard"
 import BannerSlider from "./components/BannerSlider"
 import ThemeToggle from "./components/ThemeToggle"
+import type { Banner, Car, Category } from "./types"
 
 // ─── KKC CAR HUB — Dark/Red Aggressive Theme ───────────────────────────────
 // Font imports (add to your layout.tsx or globals.css):
@@ -12,9 +14,9 @@ import ThemeToggle from "./components/ThemeToggle"
 
 export default function Home(){
 
-const [cars,setCars]=useState<any[]>([])
-const [banners,setBanners]=useState<any[]>([])
-const [categories,setCategories]=useState<any[]>([])
+const [cars,setCars]=useState<Car[]>([])
+const [banners,setBanners]=useState<Banner[]>([])
+const [categories,setCategories]=useState<Category[]>([])
 
 const [search,setSearch]=useState("")
 const [price,setPrice]=useState("")
@@ -58,35 +60,20 @@ setCars(data || [])
 
 
 // ---------------- โหลด Banner ----------------
-const loadBanners = async () => {
-
-const { data } = await supabase
-.from("banners")
-.select("*")
-.order("created_at", { ascending: false })
-
-setBanners(data || [])
-
-}
-
-
-// ---------------- โหลด Category ----------------
-const loadCategories = async()=>{
-
-const { data } = await supabase
-.from("categories")
-.select("*")
-
-setCategories(data || [])
-
-}
-
-
 // ---------------- INIT ----------------
 useEffect(()=>{
-loadCars()
-loadBanners()
-loadCategories()
+let active = true
+void Promise.all([
+  supabase.from("cars").select("*, categories(name)").order("created_at",{ascending:false}),
+  supabase.from("banners").select("*").order("created_at",{ascending:false}),
+  supabase.from("categories").select("*"),
+]).then(([carResult, bannerResult, categoryResult]) => {
+  if (!active) return
+  setCars((carResult.data ?? []) as Car[])
+  setBanners((bannerResult.data ?? []) as Banner[])
+  setCategories((categoryResult.data ?? []) as Category[])
+})
+return () => { active = false }
 },[])
 
 
@@ -482,7 +469,7 @@ return(
 
     {/* Desktop links */}
     <div className="kkc-nav-links">
-      <a href="/admin">ขายรถ</a>
+      <Link href="/admin">ขายรถ</Link>
       <a href="https://www.facebook.com/NIGPremiumCars/?locale=th_TH">ติดต่อเรา</a>
     </div>
 
@@ -500,7 +487,7 @@ return(
 
   {menuOpen && (
     <div className="kkc-mobile-menu">
-      <a href="/admin">ขายรถ</a>
+      <Link href="/admin">ขายรถ</Link>
       <a href="https://www.facebook.com/NIGPremiumCars/?locale=th_TH">ติดต่อเรา</a>
     </div>
   )}
@@ -558,7 +545,7 @@ return(
 <div className="kkc-section">
   <h2 className="kkc-section-title">🚗 รถลงใหม่ล่าสุด</h2>
   <div className="kkc-grid">
-    {cars.slice(0,6).map((car:any)=>(
+    {cars.slice(0,6).map((car)=>(
       <CarCard key={car.id} car={car}/>
     ))}
   </div>
@@ -569,7 +556,7 @@ return(
 <div className="kkc-section">
   <h2 className="kkc-section-title">รถมือสองทั้งหมด</h2>
   <div className="kkc-grid">
-    {cars.map((car:any)=>(
+    {cars.map((car)=>(
       <CarCard key={car.id} car={car}/>
     ))}
   </div>
