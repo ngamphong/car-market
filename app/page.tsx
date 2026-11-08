@@ -4,6 +4,7 @@ import { useEffect,useState } from "react"
 import { supabase } from "../lib/supabase"
 import CarCard from "./components/CarCard"
 import BannerSlider from "./components/BannerSlider"
+import ThemeToggle from "./components/ThemeToggle"
 
 // ─── KKC CAR HUB — Dark/Red Aggressive Theme ───────────────────────────────
 // Font imports (add to your layout.tsx or globals.css):
@@ -93,10 +94,10 @@ loadCategories()
 return(
 
 <div style={{
-  backgroundColor: "#0a0a0a",
+  backgroundColor: "var(--site-bg)",
   minHeight: "100vh",
   fontFamily: "'Barlow', 'Sarabun', sans-serif",
-  color: "#f0f0f0",
+  color: "var(--site-text)",
 }}>
 
 <style>{`
@@ -451,6 +452,23 @@ return(
   }
 `}</style>
 
+<style>{`
+  :root[data-theme="light"] .kkc-nav,
+  :root[data-theme="light"] .kkc-footer,
+  :root[data-theme="light"] .kkc-mobile-menu { background: var(--site-surface); }
+  :root[data-theme="light"] .kkc-logo-kkc,
+  :root[data-theme="light"] .kkc-section-title { color: var(--site-text); }
+  :root[data-theme="light"] .kkc-nav-links a,
+  :root[data-theme="light"] .kkc-mobile-menu a,
+  :root[data-theme="light"] .kkc-mobile-menu p { color: var(--site-muted); }
+  :root[data-theme="light"] .kkc-search-box { background: var(--site-surface); border-color: var(--site-border); }
+  :root[data-theme="light"] .kkc-input,
+  :root[data-theme="light"] .kkc-select { background: var(--site-surface-2); color: var(--site-text); border-color: var(--site-border); }
+  :root[data-theme="light"] .kkc-input::placeholder { color: var(--site-muted); }
+  :root[data-theme="light"] .kkc-footer p,
+  :root[data-theme="light"] .kkc-footer-bar { color: var(--site-muted); }
+`}</style>
+
 
 {/* ── NAVBAR ── */}
 <nav className="kkc-nav">
@@ -467,6 +485,8 @@ return(
       <a href="/admin">ขายรถ</a>
       <a href="https://www.facebook.com/NIGPremiumCars/?locale=th_TH">ติดต่อเรา</a>
     </div>
+
+    <ThemeToggle />
 
     {/* Hamburger */}
     <button

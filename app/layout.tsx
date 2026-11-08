@@ -11,10 +11,7 @@ export default function RootLayout({children}:any){
 return(
 
 <html>
-<body className="bg-slate-50">
-
-
-
+<body>
 {children}
 
 </body>

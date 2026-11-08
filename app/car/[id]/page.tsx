@@ -2,6 +2,7 @@ import { supabase } from "../../../lib/supabase"
 import ImageGallery from "../../components/ImageGallery"
 import CarCard from "../../components/CarCard"
 import CarFinance from "../../components/CarFinance"
+import ThemeToggle from "../../components/ThemeToggle"
 
 export default async function CarDetail({ params }: { params: Promise<{ id: string }> }) {
 
@@ -103,6 +104,7 @@ return(
     font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;
     color:var(--muted);
   }
+  .breadcrumb-inner .theme-toggle{margin-left:auto;}
   .breadcrumb-inner span{color:var(--red);}
   .breadcrumb-inner a{color:var(--muted);text-decoration:none;}
   .breadcrumb-inner a:hover{color:var(--text);}
@@ -396,6 +398,7 @@ return(
       <a href="/">รถมือสอง</a>
       <span>/</span>
       <span style={{color:'var(--text)'}}>{car.brand} {car.model}</span>
+      <ThemeToggle />
     </div>
   </div>
 
