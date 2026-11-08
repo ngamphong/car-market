@@ -22,6 +22,7 @@ create index if not exists inventory_movements_event_type_idx
 
 alter table public.inventory_movements enable row level security;
 
+drop policy if exists "Signed-in users can read inventory history" on public.inventory_movements;
 create policy "Signed-in users can read inventory history"
   on public.inventory_movements for select to authenticated
   using (auth.uid() is not null);

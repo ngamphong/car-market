@@ -12,6 +12,11 @@ create table if not exists public.customer_inquiries (
 
 alter table public.customer_inquiries enable row level security;
 
+-- Drop existing policies first so this migration can be safely retried after a partial run.
+drop policy if exists "Anyone can submit a customer inquiry" on public.customer_inquiries;
+drop policy if exists "Signed-in admins can read customer inquiries" on public.customer_inquiries;
+drop policy if exists "Signed-in admins can update customer inquiries" on public.customer_inquiries;
+
 create policy "Anyone can submit a customer inquiry"
   on public.customer_inquiries
   for insert
